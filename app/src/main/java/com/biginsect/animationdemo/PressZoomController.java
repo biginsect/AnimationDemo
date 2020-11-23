@@ -15,7 +15,10 @@ public class PressZoomController {
     private View mTargetView;
 
     private SpringAnimation mReboundAnimX;
-    private SpringAnimation mmReboundAnimY;
+    private SpringAnimation mReboundAnimY;
+
+    private SpringAnimation mRX;
+    private SpringAnimation mRY;
 
     public PressZoomController(@NonNull View targetView) {
         mTargetView = targetView;
@@ -26,25 +29,41 @@ public class PressZoomController {
         SpringForce springForce = new SpringForce();
         springForce.setDampingRatio(SpringForce.DAMPING_RATIO_HIGH_BOUNCY)
                 .setStiffness(370f)
-                .setFinalPosition(2.0f);
-        mReboundAnimX = new SpringAnimation(mTargetView, SpringAnimation.SCALE_X);
-        mReboundAnimX.setMinimumVisibleChange(SpringAnimation.MIN_VISIBLE_CHANGE_ALPHA);
-        mReboundAnimX.setStartValue(1.0f);
-        mReboundAnimX.setSpring(springForce);
+                .setFinalPosition(0.8f);
+        mReboundAnimX = new SpringAnimation(mTargetView, SpringAnimation.SCALE_X)
+                .setMinimumVisibleChange(SpringAnimation.MIN_VISIBLE_CHANGE_ALPHA)
+                .setStartValue(1.0f)
+                .setSpring(springForce)
+                .addEndListener(new DynamicAnimation.OnAnimationEndListener() {
+                    @Override
+                    public void onAnimationEnd(DynamicAnimation animation, boolean canceled, float value, float velocity) {
+                        mRX.start();
+                        mRY.start();
+                    }
+                });
 
-        mmReboundAnimY = new SpringAnimation(mTargetView, SpringAnimation.SCALE_Y);
-        mmReboundAnimY.setMinimumVisibleChange(SpringAnimation.MIN_VISIBLE_CHANGE_ALPHA);
-        mmReboundAnimY.setStartValue(1.0f);
-        mmReboundAnimY.setSpring(springForce);
-        mReboundAnimX.addEndListener(new DynamicAnimation.OnAnimationEndListener() {
-            @Override
-            public void onAnimationEnd(DynamicAnimation animation, boolean canceled, float value, float velocity) {
-                mmReboundAnimY.start();
-            }
-        });
+        mReboundAnimY = new SpringAnimation(mTargetView, SpringAnimation.SCALE_Y)
+                .setMinimumVisibleChange(SpringAnimation.MIN_VISIBLE_CHANGE_ALPHA)
+                .setStartValue(1.0f)
+                .setSpring(springForce);
+
+        SpringForce force = new SpringForce()
+                .setDampingRatio(SpringForce.DAMPING_RATIO_HIGH_BOUNCY)
+                .setStiffness(370f)
+                .setFinalPosition(1.0f);
+        mRX = new SpringAnimation(mTargetView, SpringAnimation.SCALE_X)
+                .setMinimumVisibleChange(SpringAnimation.MIN_VISIBLE_CHANGE_ALPHA)
+                .setStartValue(0.8f)
+                .setSpring(force);
+
+        mRY = new SpringAnimation(mTargetView, SpringAnimation.SCALE_Y)
+                .setMinimumVisibleChange(SpringAnimation.MIN_VISIBLE_CHANGE_ALPHA)
+                .setStartValue(0.8f)
+                .setSpring(force);
     }
 
     public void playAnim() {
         mReboundAnimX.start();
+        mReboundAnimY.start();
     }
 }
