@@ -10,8 +10,9 @@ import android.media.AudioManager;
 import android.media.SoundPool;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.RawRes;
-import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.MotionEvent;
 
 /**
  * 缩放 + 渐变动画
@@ -19,7 +20,7 @@ import android.util.AttributeSet;
  * @author lipeng
  * Created at 2020/11/19 16:52
  */
-public class ZoomTransImageView extends AppCompatImageView {
+public class ZoomTransImageView extends BaseAnimImageView {
 
     private final static long DURATION_DEFAULT = 150L;
     private final static int ID_NO_SOUND = 0;
@@ -29,7 +30,7 @@ public class ZoomTransImageView extends AppCompatImageView {
     private SoundPool mSoundPool;
 
     private int mCurrentResId;
-    private int mNextResId;
+    private int mAnotherResId;
     private int mSoundStreamId;
 
     private boolean mSwitchEnabled = true;
@@ -46,21 +47,13 @@ public class ZoomTransImageView extends AppCompatImageView {
 
     public ZoomTransImageView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        prepareAnimation();
     }
 
-    private void prepareSound() {
-        AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                .build();
-        mSoundPool = new SoundPool.Builder()
-                .setAudioAttributes(audioAttributes)
-                .build();
-    }
-
-    private void prepareAnimation() {
+    @Override
+    protected void prepare() {
         prepareZoomOutDisappear();
         prepareZoomInAppear();
+        prepareSound();
     }
 
     private void prepareZoomOutDisappear() {
@@ -78,7 +71,7 @@ public class ZoomTransImageView extends AppCompatImageView {
             @Override
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
-                setImageResource(mIsCurrent ? mCurrentResId : mNextResId);
+                setImageResource(mIsCurrent ? mCurrentResId : mAnotherResId);
                 mZoomInAppear.start();
             }
         });
@@ -97,9 +90,18 @@ public class ZoomTransImageView extends AppCompatImageView {
         mZoomInAppear.setDuration(DURATION_DEFAULT);
     }
 
+    private void prepareSound() {
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build();
+        mSoundPool = new SoundPool.Builder()
+                .setAudioAttributes(audioAttributes)
+                .build();
+    }
+
     public void addSwitchResource(@DrawableRes int current, @DrawableRes int another) {
         mCurrentResId = current;
-        mNextResId = another;
+        mAnotherResId = another;
         setImageResource(mCurrentResId);
         mIsCurrent = true;
     }
@@ -121,7 +123,40 @@ public class ZoomTransImageView extends AppCompatImageView {
         mSwitchEnabled = isEnabled;
     }
 
-    public void playAnim() {
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                Log.d("view", "down");
+                break;
+            case MotionEvent.ACTION_UP:
+                Log.d("view", "up");
+                if (isTouchInView()) {
+                    playAnim();
+                    Log.d("view", "区域内");
+                } else {
+                    Log.d("view", "外");
+                }
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                Log.d("view", "cancel");
+                break;
+
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        cancelAnim();
+    }
+
+    private void playAnim() {
+        if (mZoomOutDisappear.isRunning() || mZoomInAppear.isRunning()) {
+            mZoomOutDisappear.cancel();
+            mZoomInAppear.cancel();
+        }
         if (mSwitchEnabled) {
             mIsCurrent = !mIsCurrent;
         }
@@ -132,7 +167,7 @@ public class ZoomTransImageView extends AppCompatImageView {
         }
     }
 
-    public void cancelAnim() {
+    private void cancelAnim() {
         if (mZoomOutDisappear != null) {
             mZoomOutDisappear.cancel();
         }
